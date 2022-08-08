@@ -31,7 +31,7 @@ export const SignUp = () => {
   })
   const navigate = useNavigate()
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setIsLoading(true)
 
@@ -43,14 +43,14 @@ export const SignUp = () => {
       password: formData.get('password')?.toString(),
     }
 
-    fetchData(payload)
+    const response = await apiClient.post<SignUpResponse>('auth/sign-up', payload);
   }
 
   useEffect(() => {
     console.log(`API Response: ${loading} ${error} ${response?.data}`)
-    if (!loading && !error && response?.data?.id) {
-      navigate('/sign-in')
-    }
+    // if (!loading && !error && response?.data?.id) {
+    //   navigate('/sign-in')
+    // }
     if (loading != isLoading) setIsLoading(loading)
   }, [response, error, loading])
 
