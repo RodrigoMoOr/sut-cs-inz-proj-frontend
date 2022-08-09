@@ -1,8 +1,8 @@
 export interface SignUpRequest {
-  name: string | undefined
-  surname: string | undefined
-  username: string | undefined
-  password: string | undefined
+  name: string;
+  surname: string;
+  username: string;
+  password: string;
 }
 
 export interface SignUpResponse {
