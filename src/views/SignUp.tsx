@@ -1,61 +1,78 @@
 import * as React from 'react'
 import {useEffect, useState} from 'react'
 import {Avatar, Box, Button, Container, CssBaseline, Grid, Link, Paper, TextField, Typography} from "@mui/material"
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
-import {useAxios} from "../hooks/use-axios";
-import {apiClient} from "../adapters/api-client";
-import {ApiResponse} from "../interfaces/api-response.interface";
-import {SignUpRequest, SignUpResponse} from "../interfaces/sign-up.interface";
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import {Link as NavLink, useNavigate} from 'react-router-dom'
-
-const Copyright = (props: any) => {
-  return (
-    <Typography variant="body2" color="text.secondary" align="center" {...props}>
-      {'Copyright © '}
-      <Link color="inherit" href="https://github.com/RodrigoMoOr/sut-cs-inz-proj-frontend">
-        Plutus
-      </Link>{' '}
-      {new Date().getFullYear()}
-      {'.'}
-    </Typography>
-  )
-}
+import {EMAIL, PASSWORD} from "../helpers/regex";
+import {SignUpRequest, SignUpResponse} from "../interfaces/sign-up.interface";
+import {apiClient} from "../adapters/api-client";
 
 export const SignUp = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [response, error, loading, fetchData] = useAxios<ApiResponse<SignUpResponse>>({
-    axiosInstance: apiClient,
-    method: 'POST',
-    url: 'auth/sign-up',
-    autoExecute: false,
-  })
-  const navigate = useNavigate()
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setIsLoading(true)
+  const [name, setName] = useState<string>('');
+  const [validName, setValidName] = useState<boolean>(false);
 
-    const formData = new FormData(event.currentTarget)
-    const payload: SignUpRequest = {
-      name: formData.get('name')?.toString(),
-      surname: formData.get('surname')?.toString(),
-      username: formData.get('username')?.toString(),
-      password: formData.get('password')?.toString(),
-    }
+  const [surname, setSurname] = useState<string>('');
+  const [validSurname, setValidSurname] = useState<boolean>(false);
 
-    const response = await apiClient.post<SignUpResponse>('auth/sign-up', payload);
-  }
+  const [email, setEmail] = useState<string>('');
+  const [validEmail, setValidEmail] = useState<boolean>(false);
+
+  const [password, setPassword] = useState<string>('');
+  const [validPassword, setValidPassword] = useState<boolean>(false);
+
+  const [verifyPassword, setVerifyPassword] = useState<string>('');
+  const [validVerifyPassword, setValidVerifyPassword] = useState<boolean>(false);
+
+  const [errMsg, setErrMsg] = useState('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
-    console.log(`API Response: ${loading} ${error} ${response?.data}`)
-    // if (!loading && !error && response?.data?.id) {
-    //   navigate('/sign-in')
-    // }
-    if (loading != isLoading) setIsLoading(loading)
-  }, [response, error, loading])
+    if (name.length > 0) setValidName(true);
+  }, [name]);
+
+  useEffect(() => {
+    setValidEmail(EMAIL.test(email));
+  }, [email]);
+
+  useEffect(() => {
+    setValidPassword(PASSWORD.test(password));
+    setValidVerifyPassword(password === verifyPassword);
+  }, [password]);
+
+  useEffect(() => {
+    setErrMsg('');
+  }, [email, password, verifyPassword]);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    const antiHackOne = EMAIL.test(email);
+    const antiHackTwo = PASSWORD.test(password);
+
+    if (!antiHackOne || !antiHackTwo) {
+      setErrMsg('Invalid inputs');
+      return;
+    }
+
+    const payload: SignUpRequest = {
+      name,
+      surname,
+      username: email,
+      password
+    };
+
+    const res = await apiClient.post<SignUpResponse>('auth/sign-up', payload);
+
+    if (res.data.id) navigate('/sign-in');
+  }
+
 
   return (
-    <Container component="main" maxWidth="xs">
+    <Container component="main" maxWidth="sm">
       <CssBaseline/>
       <Paper elevation={4}>
 
@@ -69,24 +86,30 @@ export const SignUp = () => {
           }}
         >
           <Typography component="h1" variant="h4" textAlign="center">
-            Create an Account at Plutus
+            Create your account at Plutus
           </Typography>
           <Avatar sx={{m: 1, bgcolor: 'secondary.main'}}>
-            <LockOutlinedIcon/>
+            <AccountCircleIcon/>
           </Avatar>
           <Typography component="h1" variant="h5">
             Sign up
           </Typography>
-          <Box component="form" noValidate onSubmit={handleSubmit} sx={{mt: 3}}>
+          <Box component="form" noValidate onSubmit={handleSubmit} sx={{mt: 4, mb: 4}}>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <TextField autoComplete="given-name" name="name" required fullWidth id="name" label="Name" autoFocus/>
+                <TextField autoComplete="given-name" name="name" required fullWidth id="name" label="Name" autoFocus
+                           error={!validName} helperText="Please provide your given name"
+                           onChange={(e) => setName(e.target.value)}/>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField required fullWidth id="surname" label="Surname" name="surname" autoComplete="family-name"/>
+                <TextField required fullWidth id="surname" label="Surname" name="surname" autoComplete="family-name"
+                           error={!validSurname} helperText="Please provide your surname"
+                           onChange={(e) => setSurname(e.target.value)}/>
               </Grid>
               <Grid item xs={12}>
-                <TextField required fullWidth id="username" label="Email Address" name="username" autoComplete="email"/>
+                <TextField required fullWidth id="username" label="Email Address" name="username" autoComplete="email"
+                           error={!validEmail} helperText="Please provide a valid email"
+                           onChange={(e) => setEmail(e.target.value)}/>
               </Grid>
               <Grid item xs={12}>
                 <TextField
@@ -97,6 +120,22 @@ export const SignUp = () => {
                   type="password"
                   id="password"
                   autoComplete="new-password"
+                  error={!validPassword}
+                  helperText="Password must have a length between 8 and 24 characters. Must include uppercase and lowercase letters, a number and a special character"
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  name="verifyPassword"
+                  label="Repeat Password"
+                  type="password"
+                  id="verifyPassword"
+                  autoComplete="new-password"
+                  error={!validVerifyPassword} helperText="Must match password"
+                  onChange={(e) => setVerifyPassword(e.target.value)}
                 />
               </Grid>
             </Grid>
@@ -113,7 +152,14 @@ export const SignUp = () => {
           </Box>
         </Box>
       </Paper>
-      <Copyright sx={{mt: 5}}/>
+      <Typography variant="body2" color="text.secondary" align="center" sx={{mt: 8}}>
+        {'Copyright © '}
+        <Link color="inherit" href="https://github.com/RodrigoMoOr/sut-cs-inz-proj-frontend">
+          Plutus
+        </Link>{' '}
+        {new Date().getFullYear()}
+        {'.'}
+      </Typography>
     </Container>
   )
 }
